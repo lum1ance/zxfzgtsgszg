@@ -1,8 +1,7 @@
 import os
 import logging
-import asyncio
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 # Настройка логирования
 logging.basicConfig(
@@ -18,12 +17,28 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Приветственное сообщение при /start"""
     await update.message.reply_text(
         "👋 Привет! Я бот для обработки личных сообщений.\n"
-        "Доступная команда:\n"
-        "/ид — показать ваш Telegram ID"
+        "Доступные команды:\n"
+        "/id — показать ваш Telegram ID\n"
+        "!ид — тоже показать ID (альтернативная команда)"
     )
 
-async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Команда /ид — показывает ID пользователя"""
+async def get_id_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /id — показывает ID пользователя"""
+    await show_user_id(update)
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик обычных сообщений"""
+    message_text = update.message.text
+    
+    # Проверяем команду !ид
+    if message_text == "!ид":
+        await show_user_id(update)
+    else:
+        # Игнорируем другие сообщения (или можно добавить ответ)
+        pass
+
+async def show_user_id(update: Update):
+    """Показывает ID пользователя"""
     user_id = update.effective_user.id
     username = update.effective_user.username
     first_name = update.effective_user.first_name
@@ -53,7 +68,8 @@ def main() -> None:
         
         # Регистрируем команды
         application.add_handler(CommandHandler("start", start))
-        application.add_handler(CommandHandler("ид", get_id))
+        application.add_handler(CommandHandler("id", get_id_command))  # латиница
+        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
         application.add_error_handler(error_handler)
         
         logger.info("✅ Бот запущен и готов к работе!")
